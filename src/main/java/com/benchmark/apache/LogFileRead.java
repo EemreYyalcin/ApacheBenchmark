@@ -50,6 +50,7 @@ public class LogFileRead {
             }
             if (line.contains("SESSION_TIME")) {
                 session.setTakenTime(Double.valueOf(line.split(":")[1].trim()));
+                continue;
             }
             if (line.contains("Total of ")) {
                 session.setCompleteRequest(Double.valueOf(line.substring("Total of ".length(), line.indexOf(" requests")).trim()));
@@ -67,23 +68,18 @@ public class LogFileRead {
         return Double.valueOf(value.substring(0, index));
     }
 
-    private static File selectFile() {
+    private static File[] selectFiles() {
         JFileChooser jfc = new JFileChooser(FileSystemView.getFileSystemView().getHomeDirectory());
-
+        jfc.setMultiSelectionEnabled(true);
         int returnValue = jfc.showOpenDialog(null);
 
         if (returnValue == JFileChooser.APPROVE_OPTION) {
-            return jfc.getSelectedFile();
+            return jfc.getSelectedFiles();
         }
         return null;
     }
 
-
-    public static void drawGraphiscs() throws Exception {
-        File logFile = selectFile();
-        if (Objects.isNull(logFile)) {
-            throw new Exception("File Not Selected");
-        }
+    private static void drawGraphiscs(File logFile) throws Exception {
 
         List<Session> sessions = loadSession(logFile);
         XYSeries xyRequestPerSecond = new XYSeries("Request Per Second");
@@ -107,17 +103,17 @@ public class LogFileRead {
 
 
 
-        DrawGraph requestPerSecond = new DrawGraph("Request Per Second", xyRequestPerSecond);
+        DrawGraph requestPerSecond = new DrawGraph(logFile.getName(), xyRequestPerSecond);
         requestPerSecond.pack();
         RefineryUtilities.positionFrameOnScreen(requestPerSecond, 200.0, 300.0);
         requestPerSecond.setVisible(true);
 
-        DrawGraph completeRequest = new DrawGraph("Complete Request", xyCompleteRequest);
+        DrawGraph completeRequest = new DrawGraph(logFile.getName(), xyCompleteRequest);
         completeRequest.pack();
         RefineryUtilities.positionFrameOnScreen(completeRequest, 500.0, 300.0);
         completeRequest.setVisible(true);
 
-        DrawGraph timePerRequest = new DrawGraph("Time Per Request (ms)", xyTimePerRequest);
+        DrawGraph timePerRequest = new DrawGraph(logFile.getName(), xyTimePerRequest);
         timePerRequest.pack();
         RefineryUtilities.positionFrameOnScreen(timePerRequest, 500.0, 0.0);
         timePerRequest.setVisible(true);
@@ -127,7 +123,20 @@ public class LogFileRead {
 
 
     public static void main(String[] args) throws Exception {
-        LogFileRead.drawGraphiscs();
+
+        File[] logFiles = selectFiles();
+        if (Objects.isNull(logFiles)) {
+            throw new Exception("File Not Selected");
+        }
+
+        Arrays.stream(logFiles).forEach(e -> {
+            try {
+                LogFileRead.drawGraphiscs(e);
+            } catch (Exception e1) {
+                e1.printStackTrace();
+            }
+        });
+
     }
 
 
